@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: apply-mapping
+spec:
+  description: "Applies a mapping to transform image references"
+  params:
+    - name: dataPath
+      type: string
+      description: "Path to the data JSON file"
+    - name: snapshotPath
+      type: string
+      description: "Path to the snapshot JSON file"
+      default: ""
+  workspaces:
+    - name: data
+      description: "Workspace containing the data files"
+  results:
+    - name: mapped
+      description: "Whether mapping was applied"
+  steps:
+    - name: apply
+      image: quay.io/konflux-ci/release-service-utils:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        apply_mapping --data "$(params.dataPath)"
+      env:
+        - name: DATA_DIR
+          value: /workspace/data

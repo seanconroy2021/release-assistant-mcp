@@ -1,0 +1,52 @@
+---
+repos:
+  - name: release-service
+    url: https://github.com/konflux-ci/release-service
+    ref: dfc0cd33e84468968581775d8d733bb8d1613721  # main
+    description: Operator
+
+  - name: internal-services
+    url: https://github.com/konflux-ci/internal-services
+    ref: 69b47b5ddce12a8152d8485e3a221590e108100e  # main
+    description: Internal cluster controller
+
+  - name: release-service-utils
+    url: https://github.com/konflux-ci/release-service-utils
+    ref: 3d930ff2d435da28a258a5d8f1c61c63e2aba629  # main
+    description: Base image with helper functions
+
+  - name: release-service-collectors
+    url: https://github.com/konflux-ci/release-service-collectors
+    ref: 2973f9ec49ecbf0dddbd78e95fab70e11cbf46d8  # main
+    description: Collector scripts
+
+catalog:
+  repo: release-service-catalog
+  url: https://github.com/konflux-ci/release-service-catalog
+  schema_path: schema/dataKeys.json
+  environments:
+    development:
+      branch: development
+      ref: 3aa5d47d467735cd132cd4b1a893470ae3a13f66  # development
+    staging:
+      branch: staging
+      ref: 48e91e5e0b051bf5ce78a523454e7f0cdafce4b8  # staging
+    production:
+      branch: production
+      ref: 42e643697683dfd79c1baa8ab7db3138d4cdb17f  # production
+
+docs:
+  - name: releasing
+    url: https://konflux-ci.dev/docs/releasing/
+
+  - name: release-service-architecture
+    url: https://konflux-ci.dev/architecture/core/release-service/
+
+  - name: internal-services-architecture
+    url: https://konflux-ci.dev/architecture/add-ons/internal-services/
+
+  - name: tekton-pipelines
+    url: https://tekton.dev/docs/pipelines/pipelines/
+
+  - name: tekton-tasks
+    url: https://tekton.dev/docs/pipelines/tasks/
