@@ -1,0 +1,100 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":pinDependencies",
+    ":semanticCommits",
+    "security:openssf-scorecard"
+  ],
+  "labels": ["dependencies"],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  },
+  "schedule": ["before 8am on Monday"],
+  "timezone": "Europe/Dublin",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track repo SHAs in config.yaml",
+      "fileMatch": ["^config\\.yaml$"],
+      "matchStrings": [
+        "url:\\s*https://github\\.com/(?<packageName>[^\\n]+?)\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s*#\\s*(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "git-refs",
+      "depNameTemplate": "{{{packageName}}}",
+      "depTypeTemplate": "git-sha"
+    },
+    {
+      "customType": "regex",
+      "description": "Track catalog development SHA",
+      "fileMatch": ["^config\\.yaml$"],
+      "matchStrings": [
+        "development:\\n\\s*branch:\\s*development\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s*#\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "konflux-ci/release-service-catalog",
+      "packageNameTemplate": "https://github.com/konflux-ci/release-service-catalog",
+      "datasourceTemplate": "git-refs",
+      "depTypeTemplate": "catalog-development"
+    },
+    {
+      "customType": "regex",
+      "description": "Track catalog staging SHA",
+      "fileMatch": ["^config\\.yaml$"],
+      "matchStrings": [
+        "staging:\\n\\s*branch:\\s*staging\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s*#\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "konflux-ci/release-service-catalog",
+      "packageNameTemplate": "https://github.com/konflux-ci/release-service-catalog",
+      "datasourceTemplate": "git-refs",
+      "depTypeTemplate": "catalog-staging"
+    },
+    {
+      "customType": "regex",
+      "description": "Track catalog production SHA",
+      "fileMatch": ["^config\\.yaml$"],
+      "matchStrings": [
+        "production:\\n\\s*branch:\\s*production\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s*#\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "konflux-ci/release-service-catalog",
+      "packageNameTemplate": "https://github.com/konflux-ci/release-service-catalog",
+      "datasourceTemplate": "git-refs",
+      "depTypeTemplate": "catalog-production"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Security patches — auto-merge immediately",
+      "matchUpdateTypes": ["patch"],
+      "matchCategories": ["security"],
+      "automerge": true,
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "GitHub Actions — group and auto-merge",
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "automergeType": "pr",
+      "groupName": "github-actions"
+    },
+    {
+      "description": "Python dependencies",
+      "matchManagers": ["pep621"],
+      "groupName": "python-deps"
+    },
+    {
+      "description": "Container base images",
+      "matchManagers": ["dockerfile"],
+      "groupName": "container-base-images"
+    },
+    {
+      "description": "Config repo SHAs — auto-merge daily",
+      "matchDepTypes": ["git-sha", "catalog-development", "catalog-staging", "catalog-production"],
+      "automerge": true,
+      "automergeType": "pr",
+      "schedule": ["before 8am every day"],
+      "groupName": "config-repo-shas"
+    }
+  ]
+}

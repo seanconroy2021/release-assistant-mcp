@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: rh-push-to-registry
+spec:
+  description: "Push container images to Red Hat registry"
+  params:
+    - name: release
+      type: string
+      description: "The release name"
+    - name: snapshot
+      type: string
+      description: "The snapshot spec"
+  workspaces:
+    - name: release-workspace
+      description: "Shared workspace for release data"
+  tasks:
+    - name: collect-data
+      taskRef:
+        name: collect-release-data
+      workspaces:
+        - name: data
+          workspace: release-workspace
+    - name: apply-mapping
+      taskRef:
+        name: apply-mapping
+      runAfter:
+        - collect-data
+      params:
+        - name: dataPath
+          value: "$(tasks.collect-data.results.dataPath)"
+      workspaces:
+        - name: data
+          workspace: release-workspace
+    - name: push-to-registry
+      taskRef:
+        name: push-container-image
+      runAfter:
+        - apply-mapping
+      params:
+        - name: mapped
+          value: "$(tasks.apply-mapping.results.mapped)"
+      workspaces:
+        - name: data
+          workspace: release-workspace
+  finally:
+    - name: cleanup
+      taskRef:
+        name: release-cleanup

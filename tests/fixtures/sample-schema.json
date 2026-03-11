@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "advisory": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["RHSA", "RHBA", "RHEA"] }
+      },
+      "required": ["id"]
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "repository": { "type": "string" },
+          "tag": { "type": "string" }
+        },
+        "required": ["repository"]
+      }
+    }
+  }
+}
