@@ -1,0 +1,103 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: push-to-quay
+spec:
+  description: |-
+    Tenant pipeline to push release-assistant-mcp to quay.
+    Runs conforma checks before pushing. Tags with latest and git SHA.
+  params:
+    - name: release
+      type: string
+      description: Namespaced name of the Release (namespace/name)
+    - name: releasePlan
+      type: string
+      description: Namespaced name of the ReleasePlan (namespace/name)
+    - name: snapshot
+      type: string
+      description: Namespaced name of the Snapshot (namespace/name)
+    - name: enterpriseContractPolicy
+      type: string
+      description: EnterpriseContractPolicy to validate against
+  results:
+    - name: snapshotSpec
+      value: $(tasks.reduce-snapshot.results.snapshotSpec)
+  tasks:
+    - name: reduce-snapshot
+      params:
+        - name: SNAPSHOT
+          value: $(params.snapshot)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+        results:
+          - name: snapshotSpec
+            type: string
+        steps:
+          - name: reduce
+            image: quay.io/conforma/cli:latest
+            env:
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+              - name: SINGLE_COMPONENT
+                value: "false"
+              - name: CUSTOM_RESOURCE
+                value: ""
+              - name: CUSTOM_RESOURCE_NAMESPACE
+                value: ""
+              - name: SNAPSHOT_PATH
+                value: $(results.snapshotSpec.path)
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              # The release controller passes snapshot as "namespace/name" but
+              # reduce-snapshot.sh expects a bare CR name. Strip the namespace prefix.
+              export SNAPSHOT="${SNAPSHOT##*/}"
+              reduce-snapshot.sh
+      timeout: "0h5m0s"
+    - name: verify-conforma
+      taskRef:
+        resolver: "git"
+        params:
+          - name: url
+            value: https://github.com/conforma/cli
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/verify-enterprise-contract/0.1/verify-enterprise-contract.yaml
+      params:
+        - name: IMAGES
+          value: $(tasks.reduce-snapshot.results.snapshotSpec)
+        - name: POLICY_CONFIGURATION
+          value: $(params.enterpriseContractPolicy)
+        - name: STRICT
+          value: "true"
+        - name: IGNORE_REKOR
+          value: "true"
+      timeout: "0h20m0s"
+      runAfter:
+        - reduce-snapshot
+    - name: push-snapshot
+      taskRef:
+        resolver: "git"
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/community-catalog.git
+          - name: revision
+            value: production
+          - name: pathInRepo
+            value: tasks/push-snapshot-to-quay/push-snapshot-to-quay.yaml
+      params:
+        - name: snapshot
+          value: $(params.snapshot)
+        - name: releasePlan
+          value: $(params.releasePlan)
+        - name: release
+          value: $(params.release)
+        - name: requireSuccessfulManagedRelease
+          value: "false"
+      timeout: "0h30m0s"
+      runAfter:
+        - verify-conforma
