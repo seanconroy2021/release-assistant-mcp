@@ -1,16 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "timezone": "Europe/Dublin",
   "tekton": {
-    "schedule": ["at any time"],
+    "schedule": [
+      "at any time"
+    ],
     "automerge": true
   },
   "customManagers": [
     {
       "customType": "regex",
       "description": "Track repo SHAs in config.yaml",
-      "fileMatch": ["^config\\.yaml$"],
+      "managerFilePatterns": [
+        "/^config\\.yaml$/"
+      ],
       "matchStrings": [
         "url:\\s*https://github\\.com/(?<packageName>[^\\n]+?)\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s+#\\s*(?<currentValue>\\S+)"
       ],
@@ -21,7 +27,9 @@
     {
       "customType": "regex",
       "description": "Track catalog development SHA",
-      "fileMatch": ["^config\\.yaml$"],
+      "managerFilePatterns": [
+        "/^config\\.yaml$/"
+      ],
       "matchStrings": [
         "development:\\n\\s*branch:\\s*development\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s+#\\s*(?<currentValue>\\S+)"
       ],
@@ -33,7 +41,9 @@
     {
       "customType": "regex",
       "description": "Track catalog staging SHA",
-      "fileMatch": ["^config\\.yaml$"],
+      "managerFilePatterns": [
+        "/^config\\.yaml$/"
+      ],
       "matchStrings": [
         "staging:\\n\\s*branch:\\s*staging\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s+#\\s*(?<currentValue>\\S+)"
       ],
@@ -45,7 +55,9 @@
     {
       "customType": "regex",
       "description": "Track catalog production SHA",
-      "fileMatch": ["^config\\.yaml$"],
+      "managerFilePatterns": [
+        "/^config\\.yaml$/"
+      ],
       "matchStrings": [
         "production:\\n\\s*branch:\\s*production\\n\\s*ref:\\s*(?<currentDigest>[a-f0-9]{40})\\s+#\\s*(?<currentValue>\\S+)"
       ],
@@ -58,9 +70,16 @@
   "packageRules": [
     {
       "description": "Config repo SHAs, daily, auto-merge when CI passes",
-      "matchDepTypes": ["git-sha", "catalog-development", "catalog-staging", "catalog-production"],
+      "matchDepTypes": [
+        "git-sha",
+        "catalog-development",
+        "catalog-staging",
+        "catalog-production"
+      ],
       "automerge": true,
-      "schedule": ["before 8am every weekday"],
+      "schedule": [
+        "before 8am every weekday"
+      ],
       "groupName": "config-repo-shas"
     }
   ]
