@@ -121,6 +121,16 @@ To add a new repo: add it to `config.yaml`. To add a new doc page: add it to `co
 | [release-service-collectors](https://github.com/konflux-ci/release-service-collectors) | Collector scripts |
 | [release-service-catalog](https://github.com/konflux-ci/release-service-catalog) | Tekton pipelines and tasks |
 
+## Docs indexed
+
+| Page | Source |
+|------|--------|
+| [Releasing](https://konflux-ci.dev/docs/releasing/) | konflux-ci.dev |
+| [Release Service architecture](https://konflux-ci.dev/architecture/core/release-service/) | konflux-ci.dev |
+| [Internal Services architecture](https://konflux-ci.dev/architecture/add-ons/internal-services/) | konflux-ci.dev |
+| [Tekton Pipelines](https://tekton.dev/docs/pipelines/pipelines/) | tekton.dev |
+| [Tekton Tasks](https://tekton.dev/docs/pipelines/tasks/) | tekton.dev |
+
 ## Examples
 
 **Show the rh-push-to-registry-redhat-io pipeline DAG:**
