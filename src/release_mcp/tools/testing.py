@@ -23,9 +23,13 @@ def register_testing_tools(mcp, index):
             seen.add(dedup_key)
             task_tests[key] = []
 
+        seen_tests = set()
         for key, pipeline in index.pipelines.items():
             if "test" not in pipeline.path.lower():
                 continue
+            if pipeline.path in seen_tests:
+                continue
+            seen_tests.add(pipeline.path)
             for task_key in task_tests:
                 task = index.tasks[task_key]
                 task_dir = task.path.rsplit("/", 1)[0]
@@ -80,8 +84,12 @@ def register_testing_tools(mcp, index):
 
         task_dir = task.path.rsplit("/", 1)[0]
         tests = []
+        seen_paths = set()
         for key, pipeline in sorted(index.pipelines.items()):
+            if pipeline.path in seen_paths:
+                continue
             if pipeline.path.startswith(task_dir + "/tests/"):
+                seen_paths.add(pipeline.path)
                 url = index.url_for(pipeline.repo, pipeline.path)
                 task_names = [t.name for t in pipeline.task_refs]
                 tests.append(f"  {pipeline.name}\n    tasks: {', '.join(task_names)}\n    {url}")
@@ -144,8 +152,12 @@ def register_testing_tools(mcp, index):
 
         task_dir = task.path.rsplit("/", 1)[0]
         existing = set()
+        seen_paths = set()
         for pipeline in index.pipeline_list:
+            if pipeline.path in seen_paths:
+                continue
             if pipeline.path.startswith(task_dir + "/tests/"):
+                seen_paths.add(pipeline.path)
                 existing.add(pipeline.name.lower())
 
         suggestions = []

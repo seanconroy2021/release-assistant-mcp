@@ -76,7 +76,23 @@ def multi_env_index(tmp_path):
         managed_tasks.mkdir(parents=True)
         managed_pipelines.mkdir(parents=True)
 
-        shutil.copy(FIXTURES_DIR / "sample-task.yaml", managed_tasks / "apply-mapping.yaml")
+        # apply-mapping task + a test pipeline for it (in both envs)
+        am_dir = managed_tasks / "apply-mapping"
+        am_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(FIXTURES_DIR / "sample-task.yaml", am_dir / "apply-mapping.yaml")
+        test_dir = am_dir / "tests"
+        test_dir.mkdir(parents=True, exist_ok=True)
+        (test_dir / "test-apply-mapping-good.yaml").write_text(
+            "apiVersion: tekton.dev/v1\n"
+            "kind: Pipeline\n"
+            "metadata:\n"
+            "  name: test-apply-mapping-good\n"
+            "spec:\n"
+            "  tasks:\n"
+            "    - name: run-test\n"
+            "      taskRef:\n"
+            "        name: apply-mapping\n"
+        )
 
         if env_name == "development":
             # Dev has an extra task not yet in production

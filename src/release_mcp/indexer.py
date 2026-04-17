@@ -280,9 +280,21 @@ def _parse_task(doc, path, repo_root, repo_name, env_name, index):
 
 def _parse_task_ref(raw):
     ref = raw.get("taskRef", {})
+    task_ref_name = ref.get("name") if isinstance(ref, dict) else None
+
+    if not task_ref_name and isinstance(ref, dict) and ref.get("resolver"):
+        for param in ref.get("params", []):
+            if param.get("name") == "pathInRepo":
+                path = param.get("value", "")
+                parts = path.strip("/").split("/")
+                if parts:
+                    filename = parts[-1]
+                    task_ref_name = filename.rsplit(".", 1)[0]
+                break
+
     return PipelineTaskRef(
         name=raw.get("name", ""),
-        task_ref=ref.get("name") if isinstance(ref, dict) else None,
+        task_ref=task_ref_name,
         run_after=tuple(raw.get("runAfter", [])),
         has_when=bool(raw.get("when")),
         timeout=raw.get("timeout", ""),

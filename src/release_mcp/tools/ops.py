@@ -1,5 +1,7 @@
 """Operational tools for debugging and inspecting catalog contents."""
 
+import re
+
 
 def register_ops_tools(mcp, index):
     @mcp.tool()
@@ -136,7 +138,7 @@ def register_ops_tools(mcp, index):
                 for env_name, env_val in step.env.items():
                     if "secret" in env_name.lower() or "secret" in env_val.lower():
                         results.append(f"  {dedup_key}/{step.name}: env {env_name}")
-                if step.script and "secret" in step.script.lower():
+                if step.script and _has_secret_ref(step.script):
                     results.append(
                         f"  {dedup_key}/{step.name}: script references secrets\n"
                         f"    {index.url_for(task.repo, task.path)}"
@@ -145,3 +147,13 @@ def register_ops_tools(mcp, index):
         if not results:
             return "No secret references found."
         return f"{len(results)} secret reference(s):\n\n" + "\n".join(results)
+
+
+SECRET_PATTERNS = re.compile(
+    r"secretName|secretKeyRef|Secret\b|\.secrets\b|/secrets/|secret-name|ssl-cert-secret",
+    re.IGNORECASE,
+)
+
+
+def _has_secret_ref(script):
+    return bool(SECRET_PATTERNS.search(script))

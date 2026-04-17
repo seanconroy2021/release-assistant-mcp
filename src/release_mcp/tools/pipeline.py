@@ -90,12 +90,14 @@ def register_pipeline_tools(mcp, index):
         if not b:
             return _not_found(index, name_b, category)
 
-        refs_a = {(t.task_ref or t.name) for t in a.task_refs}
-        refs_b = {(t.task_ref or t.name) for t in b.task_refs}
+        refs_a = {(t.task_ref or t.name) for t in a.task_refs + a.finally_refs}
+        refs_b = {(t.task_ref or t.name) for t in b.task_refs + b.finally_refs}
 
+        total_a = len(a.task_refs) + len(a.finally_refs)
+        total_b = len(b.task_refs) + len(b.finally_refs)
         lines = [
             f"{a.name} vs {b.name} ({category})",
-            f"Tasks: {len(a.task_refs)} vs {len(b.task_refs)}",
+            f"Tasks: {total_a} vs {total_b}",
             f"Params: {len(a.params)} vs {len(b.params)}",
         ]
 

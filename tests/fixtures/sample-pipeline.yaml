@@ -1,3 +1,4 @@
+---
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
@@ -34,7 +35,10 @@ spec:
           workspace: release-workspace
     - name: push-to-registry
       taskRef:
-        name: push-container-image
+        resolver: git
+        params:
+          - name: pathInRepo
+            value: tasks/push-container-image/0.1/push-container-image.yaml
       runAfter:
         - apply-mapping
       params:

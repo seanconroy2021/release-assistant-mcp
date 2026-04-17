@@ -8,6 +8,7 @@ from release_mcp.tools.ops import register_ops_tools
 from release_mcp.tools.pipeline import register_pipeline_tools
 from release_mcp.tools.search import register_search_tools
 from release_mcp.tools.task import register_task_tools
+from release_mcp.tools.testing import register_testing_tools
 from release_mcp.tools.validate import register_validate_tools
 
 
@@ -18,6 +19,7 @@ def _build_mcp(index):
     register_task_tools(mcp, index)
     register_validate_tools(mcp, index)
     register_ops_tools(mcp, index)
+    register_testing_tools(mcp, index)
     return mcp
 
 
@@ -210,3 +212,34 @@ class TestDiffEnvs:
         mcp = _build_mcp(multi_env_index)
         result = _call(mcp, "diff_envs", env_a="development", env_b="production")
         assert "Shared" in result
+
+
+class TestDiffPipelinesFinally:
+    """diff_pipelines includes finally tasks in comparison."""
+
+    def test_finally_refs_included(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(
+            mcp,
+            "diff_pipelines",
+            name_a="rh-push-to-registry",
+            name_b="rh-push-to-registry",
+            env="development",
+        )
+        assert "release-cleanup" in result
+
+    def test_total_count_includes_finally(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "show_pipeline", name="rh-push-to-registry", env="development")
+        assert "Finally:" in result
+        assert "cleanup" in result
+
+
+class TestTestCoverageDedup:
+    """test_coverage doesn't triple-count test pipelines across environments."""
+
+    def test_test_count_not_multiplied(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "test_coverage", category="managed")
+        assert "1 test(s)" in result
+        assert "2 test(s)" not in result

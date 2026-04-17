@@ -57,6 +57,11 @@ class TestIndexer:
         assert sample_index.schema is not None
         assert "properties" in sample_index.schema
 
+    def test_git_resolver_task_ref(self, sample_index):
+        pipeline = sample_index.pipelines["managed/rh-push-to-registry"]
+        push = next(t for t in pipeline.task_refs if t.name == "push-to-registry")
+        assert push.task_ref == "push-container-image"
+
     def test_empty_data_dir(self, tmp_path):
         empty = tmp_path / "empty"
         empty.mkdir()
