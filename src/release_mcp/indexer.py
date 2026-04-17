@@ -47,24 +47,36 @@ class Index:
     def pipeline_list(self):
         return list(self.pipelines.values())
 
-    def find_task(self, name, category):
-        return self.tasks.get(f"{category}/{name}") or next(
-            (t for t in self.task_list if t.name == name and t.category == category), None
-        )
+    def find_task(self, name, category, env=""):
+        if env:
+            return self.tasks.get(f"{env}/{category}/{name}")
+        for e in self.catalog_envs or [""]:
+            key = f"{e}/{category}/{name}" if e else f"{category}/{name}"
+            if key in self.tasks:
+                return self.tasks[key]
+        return None
 
-    def find_pipeline(self, name, category):
-        return self.pipelines.get(f"{category}/{name}") or next(
-            (p for p in self.pipeline_list if p.name == name and p.category == category), None
-        )
+    def find_pipeline(self, name, category, env=""):
+        if env:
+            return self.pipelines.get(f"{env}/{category}/{name}")
+        for e in self.catalog_envs or [""]:
+            key = f"{e}/{category}/{name}" if e else f"{category}/{name}"
+            if key in self.pipelines:
+                return self.pipelines[key]
+        return None
 
     def suggest(self, items, name, category):
         q = name.lower()
-        return [
-            x.name
-            for x in items
-            if (category == "all" or x.category == category)
-            and (q in x.name.lower() or x.name.lower() in q)
-        ][:10]
+        seen = set()
+        results = []
+        for x in items:
+            if (category == "all" or x.category == category) and (
+                q in x.name.lower() or x.name.lower() in q
+            ):
+                if x.name not in seen:
+                    seen.add(x.name)
+                    results.append(x.name)
+        return results[:10]
 
     def url_for(self, repo, path, line=None):
         ref = self.commits.get(repo, "HEAD")
@@ -119,12 +131,12 @@ def build_index(data_dir=None, config=None):
         for env_name in envs:
             catalog = root / f"{config.catalog.repo}-{env_name}"
             if catalog.exists():
-                _index_catalog(catalog, f"{config.catalog.repo}-{env_name}", index)
+                _index_catalog(catalog, f"{config.catalog.repo}-{env_name}", env_name, index)
                 index.catalog_envs.append(env_name)
     else:
         catalog = root / config.catalog.repo
         if catalog.exists():
-            _index_catalog(catalog, config.catalog.repo, index)
+            _index_catalog(catalog, config.catalog.repo, "", index)
 
     # Load schema from first available catalog
     schema_rel = config.catalog.schema_path
@@ -177,14 +189,14 @@ def build_index(data_dir=None, config=None):
     return index
 
 
-def _index_catalog(catalog, repo_name, index):
+def _index_catalog(catalog, repo_name, env_name, index):
     for path in catalog.rglob("*.yaml"):
-        _parse_yaml(path, catalog, repo_name, index)
+        _parse_yaml(path, catalog, repo_name, env_name, index)
     for path in catalog.rglob("*.yml"):
-        _parse_yaml(path, catalog, repo_name, index)
+        _parse_yaml(path, catalog, repo_name, env_name, index)
 
 
-def _parse_yaml(path, repo_root, repo_name, index):
+def _parse_yaml(path, repo_root, repo_name, env_name, index):
     try:
         docs = list(yaml.safe_load_all(path.read_text()))
     except (OSError, yaml.YAMLError):
@@ -195,9 +207,9 @@ def _parse_yaml(path, repo_root, repo_name, index):
             continue
         kind = doc.get("kind", "")
         if kind == "Task":
-            _parse_task(doc, path, repo_root, repo_name, index)
+            _parse_task(doc, path, repo_root, repo_name, env_name, index)
         elif kind == "Pipeline":
-            _parse_pipeline(doc, path, repo_root, repo_name, index)
+            _parse_pipeline(doc, path, repo_root, repo_name, env_name, index)
 
 
 def _category(path):
@@ -221,7 +233,7 @@ def _parse_param(raw):
     )
 
 
-def _parse_task(doc, path, repo_root, repo_name, index):
+def _parse_task(doc, path, repo_root, repo_name, env_name, index):
     meta = doc.get("metadata", {})
     spec = doc.get("spec", {})
     name = meta.get("name", path.stem)
@@ -260,8 +272,10 @@ def _parse_task(doc, path, repo_root, repo_name, index):
             for r in spec.get("results", [])
         ],
         description=spec.get("description", meta.get("description", "")),
+        env=env_name,
     )
-    index.tasks[f"{task.category}/{task.name}"] = task
+    key = f"{env_name}/{task.category}/{task.name}" if env_name else f"{task.category}/{task.name}"
+    index.tasks[key] = task
 
 
 def _parse_task_ref(raw):
@@ -275,7 +289,7 @@ def _parse_task_ref(raw):
     )
 
 
-def _parse_pipeline(doc, path, repo_root, repo_name, index):
+def _parse_pipeline(doc, path, repo_root, repo_name, env_name, index):
     meta = doc.get("metadata", {})
     spec = doc.get("spec", {})
     name = meta.get("name", path.stem)
@@ -297,8 +311,14 @@ def _parse_pipeline(doc, path, repo_root, repo_name, index):
         ],
         finally_refs=[_parse_task_ref(t) for t in spec.get("finally", [])],
         description=spec.get("description", meta.get("description", "")),
+        env=env_name,
     )
-    index.pipelines[f"{pipeline.category}/{pipeline.name}"] = pipeline
+    key = (
+        f"{env_name}/{pipeline.category}/{pipeline.name}"
+        if env_name
+        else f"{pipeline.category}/{pipeline.name}"
+    )
+    index.pipelines[key] = pipeline
 
 
 def _glob_match(filename, pattern):

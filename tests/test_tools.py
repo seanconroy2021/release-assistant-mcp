@@ -4,6 +4,7 @@ import json
 
 from mcp.server.fastmcp import FastMCP
 
+from release_mcp.tools.ops import register_ops_tools
 from release_mcp.tools.pipeline import register_pipeline_tools
 from release_mcp.tools.search import register_search_tools
 from release_mcp.tools.task import register_task_tools
@@ -16,6 +17,7 @@ def _build_mcp(index):
     register_pipeline_tools(mcp, index)
     register_task_tools(mcp, index)
     register_validate_tools(mcp, index)
+    register_ops_tools(mcp, index)
     return mcp
 
 
@@ -119,3 +121,92 @@ class TestValidate:
         data = json.dumps({"advisory": {"type": "INVALID"}})
         result = _call(mcp, "validate", data_json=data)
         assert "failed" in result or "Validation" in result
+
+
+class TestMultiEnvDefaults:
+    """Default queries return development data, not production."""
+
+    def test_default_returns_dev_task_count(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "show_pipeline", name="rh-push-to-registry")
+        assert "4 tasks" in result
+        assert "collect-signing-params" in result
+
+    def test_default_search_includes_dev_only_task(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "search", query="collect-signing-params")
+        assert "collect-signing-params" in result
+        assert "result(s)" in result
+
+    def test_default_list_tasks_deduplicates(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "list_tasks")
+        lines = [ln.strip() for ln in result.splitlines() if ln.strip().startswith("apply-mapping")]
+        assert len(lines) == 1
+
+    def test_default_list_pipelines_deduplicates(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "list_pipelines")
+        lines = [
+            ln.strip() for ln in result.splitlines() if ln.strip().startswith("rh-push-to-registry")
+        ]
+        assert len(lines) == 1
+
+
+class TestMultiEnvFiltering:
+    """Explicit env param returns data from that specific environment."""
+
+    def test_production_pipeline_has_fewer_tasks(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "show_pipeline", name="rh-push-to-registry", env="production")
+        assert "3 tasks" in result
+        assert "collect-signing-params" not in result
+
+    def test_dev_task_not_found_in_production(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "show_task", name="collect-signing-params", env="production")
+        assert "not found" in result
+
+    def test_dev_task_found_in_development(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "show_task", name="collect-signing-params", env="development")
+        assert "collect-signing-params" in result
+        assert "not found" not in result
+
+    def test_search_with_env_filters(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "search", query="collect-signing-params", env="production")
+        assert "No results" in result
+
+
+class TestMultiEnvIndexKeys:
+    """Index keys include env prefix so environments don't overwrite each other."""
+
+    def test_both_envs_indexed(self, multi_env_index):
+        assert "development/managed/apply-mapping" in multi_env_index.tasks
+        assert "production/managed/apply-mapping" in multi_env_index.tasks
+
+    def test_dev_only_task_indexed(self, multi_env_index):
+        assert "development/managed/collect-signing-params" in multi_env_index.tasks
+        assert "production/managed/collect-signing-params" not in multi_env_index.tasks
+
+    def test_env_field_set(self, multi_env_index):
+        dev = multi_env_index.tasks["development/managed/apply-mapping"]
+        prod = multi_env_index.tasks["production/managed/apply-mapping"]
+        assert dev.env == "development"
+        assert prod.env == "production"
+
+
+class TestDiffEnvs:
+    """diff_envs compares environments correctly with env-prefixed keys."""
+
+    def test_finds_dev_only_task(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "diff_envs", env_a="development", env_b="production")
+        assert "collect-signing-params" in result
+        assert "Only in development" in result
+
+    def test_shared_items(self, multi_env_index):
+        mcp = _build_mcp(multi_env_index)
+        result = _call(mcp, "diff_envs", env_a="development", env_b="production")
+        assert "Shared" in result

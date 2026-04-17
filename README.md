@@ -41,6 +41,8 @@ Add to `~/.cursor/mcp.json`:
 
 ## Tools
 
+Most tools accept an `env` parameter (`development`, `staging`, or `production`). When omitted, tools default to the development catalog and deduplicate results across environments.
+
 | Tool | What it does |
 |------|-------------|
 | `search` | Find pipelines or tasks by name |
@@ -169,6 +171,20 @@ Tasks: 26 vs 6
 Shared (6): collect-data, collect-task-params, create-advisory, reduce-snapshot,
             verify-access-to-resources, verify-conforma
 Only in rh-advisories: apply-mapping, check-data-keys, check-labels, ...
+```
+
+**Compare dev vs production to see what hasn't been promoted:**
+
+```
+diff_envs(env_a="development", env_b="production")
+
+development vs production
+Shared: 82, only development: 4, only production: 0
+
+Only in development (4):
+  managed/collect-signing-params
+  managed/sign-image-cosign-keyless
+  ...
 ```
 
 **Find all tasks with timeouts:**

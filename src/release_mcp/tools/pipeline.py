@@ -2,16 +2,16 @@
 
 
 def register_pipeline_tools(mcp, index):
-
     @mcp.tool()
-    def show_pipeline(name: str, category: str = "managed") -> str:
+    def show_pipeline(name: str, category: str = "managed", env: str = "") -> str:
         """Show a pipeline: task DAG, params, workspaces.
 
         Args:
             name: Pipeline name.
             category: 'managed', 'internal', or 'collector'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        p = index.find_pipeline(name, category)
+        p = index.find_pipeline(name, category, env)
         if not p:
             return _not_found(index, name, category)
 
@@ -39,13 +39,14 @@ def register_pipeline_tools(mcp, index):
         return "\n".join(lines)
 
     @mcp.tool()
-    def trace_pipeline(name: str) -> str:
+    def trace_pipeline(name: str, env: str = "") -> str:
         """Trace a managed pipeline through tasks and internal service calls.
 
         Args:
             name: Managed pipeline name.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        p = index.find_pipeline(name, "managed")
+        p = index.find_pipeline(name, "managed", env)
         if not p:
             return _not_found(index, name, "managed")
 
@@ -56,7 +57,7 @@ def register_pipeline_tools(mcp, index):
             after = f" (after: {', '.join(ref.run_after)})" if ref.run_after else ""
             lines.append(f"\n  {ref.name}{after}")
 
-            task = index.find_task(ref_name, "managed")
+            task = index.find_task(ref_name, "managed", env)
             if task:
                 lines.append(f"    {index.url_for(task.repo, task.path)}")
                 for step in task.steps:
@@ -73,16 +74,17 @@ def register_pipeline_tools(mcp, index):
         return "\n".join(lines)
 
     @mcp.tool()
-    def diff_pipelines(name_a: str, name_b: str, category: str = "managed") -> str:
+    def diff_pipelines(name_a: str, name_b: str, category: str = "managed", env: str = "") -> str:
         """Compare two pipelines: shared tasks, unique tasks, param diffs.
 
         Args:
             name_a: First pipeline.
             name_b: Second pipeline.
             category: Category for both.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        a = index.find_pipeline(name_a, category)
-        b = index.find_pipeline(name_b, category)
+        a = index.find_pipeline(name_a, category, env)
+        b = index.find_pipeline(name_b, category, env)
         if not a:
             return _not_found(index, name_a, category)
         if not b:

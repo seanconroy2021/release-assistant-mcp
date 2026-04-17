@@ -2,18 +2,25 @@
 
 
 def register_testing_tools(mcp, index):
-
     @mcp.tool()
-    def test_coverage(category: str = "managed") -> str:
+    def test_coverage(category: str = "managed", env: str = "") -> str:
         """Show which tasks have unit tests and how many.
 
         Args:
             category: 'managed', 'internal', 'collector', or 'all'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
         task_tests = {}
+        seen = set()
         for key, task in sorted(index.tasks.items()):
             if category != "all" and task.category != category:
                 continue
+            if env and task.env != env:
+                continue
+            dedup_key = f"{task.category}/{task.name}"
+            if not env and dedup_key in seen:
+                continue
+            seen.add(dedup_key)
             task_tests[key] = []
 
         for key, pipeline in index.pipelines.items():
@@ -55,14 +62,15 @@ def register_testing_tools(mcp, index):
         return "\n".join(lines)
 
     @mcp.tool()
-    def show_tests(name: str, category: str = "managed") -> str:
+    def show_tests(name: str, category: str = "managed", env: str = "") -> str:
         """List all unit tests for a task.
 
         Args:
             name: Task name.
             category: 'managed', 'internal', or 'collector'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        task = index.find_task(name, category)
+        task = index.find_task(name, category, env)
         if not task:
             msg = f"Task '{name}' not found (category={category})."
             suggestions = index.suggest(index.task_list, name, category)
@@ -90,10 +98,21 @@ def register_testing_tools(mcp, index):
         return "\n".join(lines)
 
     @mcp.tool()
-    def e2e_tests() -> str:
-        """List all integration/e2e test pipelines."""
+    def e2e_tests(env: str = "") -> str:
+        """List all integration/e2e test pipelines.
+
+        Args:
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
+        """
         tests = []
+        seen = set()
         for key, pipeline in sorted(index.pipelines.items()):
+            if env and pipeline.env != env:
+                continue
+            dedup_key = f"{pipeline.category}/{pipeline.name}"
+            if not env and dedup_key in seen:
+                continue
+            seen.add(dedup_key)
             path_lower = pipeline.path.lower()
             if "integration-test" in path_lower or "e2e" in path_lower:
                 url = index.url_for(pipeline.repo, pipeline.path)
@@ -104,7 +123,7 @@ def register_testing_tools(mcp, index):
         return f"{len(tests)} e2e test(s):\n\n" + "\n\n".join(tests)
 
     @mcp.tool()
-    def test_gaps(name: str, category: str = "managed") -> str:
+    def test_gaps(name: str, category: str = "managed", env: str = "") -> str:
         """Suggest missing test cases for a task.
 
         Checks for missing failure tests, untested boolean params,
@@ -113,8 +132,9 @@ def register_testing_tools(mcp, index):
         Args:
             name: Task name.
             category: 'managed', 'internal', or 'collector'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        task = index.find_task(name, category)
+        task = index.find_task(name, category, env)
         if not task:
             msg = f"Task '{name}' not found (category={category})."
             suggestions = index.suggest(index.task_list, name, category)

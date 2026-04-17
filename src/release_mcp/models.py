@@ -55,6 +55,7 @@ class TektonTask:
     workspaces: list = field(default_factory=list)
     results: list = field(default_factory=list)
     description: str = ""
+    env: str = ""
 
 
 @dataclass
@@ -68,3 +69,4 @@ class TektonPipeline:
     workspaces: list = field(default_factory=list)
     finally_refs: list = field(default_factory=list)
     description: str = ""
+    env: str = ""

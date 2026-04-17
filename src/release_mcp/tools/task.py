@@ -4,16 +4,16 @@ SCRIPT_PREVIEW = 8
 
 
 def register_task_tools(mcp, index):
-
     @mcp.tool()
-    def show_task(name: str, category: str = "managed") -> str:
+    def show_task(name: str, category: str = "managed", env: str = "") -> str:
         """Show a task: steps, images, params, helpers, GitHub link.
 
         Args:
             name: Task name.
             category: 'managed', 'internal', or 'collector'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        task = index.find_task(name, category)
+        task = index.find_task(name, category, env)
         if not task:
             msg = f"Task '{name}' not found (category={category})."
             suggestions = index.suggest(index.task_list, name, category)
@@ -59,68 +59,104 @@ def register_task_tools(mcp, index):
         return "\n".join(lines)
 
     @mcp.tool()
-    def list_tasks(category: str = "all") -> str:
+    def list_tasks(category: str = "all", env: str = "") -> str:
         """List all tasks with GitHub links.
 
         Args:
             category: 'managed', 'internal', 'collector', or 'all'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        items = index.task_list
-        if category != "all":
-            items = [t for t in items if t.category == category]
+        items = _dedup(index.task_list, category, env, index)
         if not items:
             return f"No tasks (category={category})"
         return _listing(items, "tasks", index)
 
     @mcp.tool()
-    def list_pipelines(category: str = "all") -> str:
+    def list_pipelines(category: str = "all", env: str = "") -> str:
         """List all pipelines with GitHub links.
 
         Args:
             category: 'managed', 'internal', 'collector', or 'all'.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
-        items = index.pipeline_list
-        if category != "all":
-            items = [p for p in items if p.category == category]
+        items = _dedup(index.pipeline_list, category, env, index)
         if not items:
             return f"No pipelines (category={category})"
         return _listing(items, "pipelines", index)
 
     @mcp.tool()
-    def search_by_image(image: str) -> str:
+    def search_by_image(image: str, env: str = "") -> str:
         """Find tasks using a specific container image.
 
         Args:
             image: Image name or fragment.
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
         """
         q = image.lower()
         matches = []
+        seen = set()
         for key, task in index.tasks.items():
+            if env and task.env != env:
+                continue
+            dedup_key = f"{task.category}/{task.name}"
+            if not env and dedup_key in seen:
+                continue
+            seen.add(dedup_key)
             for step in task.steps:
                 if q in step.image.lower():
                     matches.append(
-                        f"{key}/{step.name} [{step.image}]\n  {index.url_for(task.repo, task.path)}"
+                        f"{task.category}/{task.name}/{step.name} [{step.image}]\n"
+                        f"  {index.url_for(task.repo, task.path)}"
                     )
         if not matches:
             return f"No tasks use '{image}'"
         return f"{len(matches)} step(s) match '{image}':\n\n" + "\n\n".join(matches)
 
     @mcp.tool()
-    def unused_tasks() -> str:
-        """Find tasks not referenced by any pipeline."""
+    def unused_tasks(env: str = "") -> str:
+        """Find tasks not referenced by any pipeline.
+
+        Args:
+            env: Catalog environment: 'development', 'staging', or 'production'. Empty for latest.
+        """
+        target_env = env or (index.catalog_envs[0] if index.catalog_envs else "")
+
         referenced = set()
         for p in index.pipeline_list:
-            for t in p.task_refs + p.finally_refs:
-                referenced.add(t.task_ref or t.name)
+            if p.env == target_env:
+                for t in p.task_refs + p.finally_refs:
+                    referenced.add(t.task_ref or t.name)
 
         unused = []
+        seen = set()
         for key, task in sorted(index.tasks.items()):
-            if task.name not in referenced:
-                unused.append(f"  {key}  {index.url_for(task.repo, task.path)}")
+            if task.env != target_env:
+                continue
+            if task.name not in referenced and task.name not in seen:
+                seen.add(task.name)
+                unused.append(
+                    f"  {task.category}/{task.name}  {index.url_for(task.repo, task.path)}"
+                )
 
         if not unused:
             return "All tasks are referenced."
         return f"{len(unused)} unreferenced task(s):\n\n" + "\n".join(unused)
+
+
+def _dedup(items, category, env, index):
+    seen = set()
+    result = []
+    for item in items:
+        if category != "all" and item.category != category:
+            continue
+        if env and item.env != env:
+            continue
+        dedup_key = f"{item.category}/{item.name}"
+        if not env and dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        result.append(item)
+    return result
 
 
 def _listing(items, label, index):

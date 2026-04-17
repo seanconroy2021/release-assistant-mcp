@@ -63,3 +63,42 @@ class TestIndexer:
         index = Index(data_dir=empty)
         assert len(index.tasks) == 0
         assert len(index.pipelines) == 0
+
+
+class TestMultiEnvIndexer:
+    def test_envs_dont_overwrite(self, multi_env_index):
+        assert len(multi_env_index.catalog_envs) == 2
+        dev_tasks = [k for k in multi_env_index.tasks if k.startswith("development/")]
+        prod_tasks = [k for k in multi_env_index.tasks if k.startswith("production/")]
+        assert len(dev_tasks) > len(prod_tasks)
+
+    def test_find_task_default_returns_dev(self, multi_env_index):
+        task = multi_env_index.find_task("apply-mapping", "managed")
+        assert task is not None
+        assert task.env == "development"
+
+    def test_find_task_explicit_env(self, multi_env_index):
+        task = multi_env_index.find_task("apply-mapping", "managed", "production")
+        assert task is not None
+        assert task.env == "production"
+
+    def test_find_pipeline_default_returns_dev(self, multi_env_index):
+        p = multi_env_index.find_pipeline("rh-push-to-registry", "managed")
+        assert p is not None
+        assert p.env == "development"
+        assert len(p.task_refs) == 4
+
+    def test_find_pipeline_explicit_prod(self, multi_env_index):
+        p = multi_env_index.find_pipeline("rh-push-to-registry", "managed", "production")
+        assert p is not None
+        assert p.env == "production"
+        assert len(p.task_refs) == 3
+
+    def test_dev_only_task_not_in_prod(self, multi_env_index):
+        task = multi_env_index.find_task("collect-signing-params", "managed", "production")
+        assert task is None
+
+    def test_dev_only_task_found_default(self, multi_env_index):
+        task = multi_env_index.find_task("collect-signing-params", "managed")
+        assert task is not None
+        assert task.env == "development"

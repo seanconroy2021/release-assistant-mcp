@@ -9,8 +9,8 @@ At runtime it exposes tools, prompts, and resources over MCP stdio so AI assista
 
 1. `config.yaml` defines every repo, catalog environment SHA, and doc URL
 2. At container build, `scripts/clone_repos.py` clones repos at pinned SHAs and `scripts/crawl-docs.py` caches doc pages as text
-3. At startup, `indexer.py` parses all Tekton YAML into an in-memory `Index` (tasks, pipelines, params, steps, resources, timeouts)
-4. Tools query the index and return compact text with GitHub permalink URLs
+3. At startup, `indexer.py` parses all Tekton YAML into an in-memory `Index` (tasks, pipelines, params, steps, resources, timeouts). Each environment is stored separately with keys like `development/managed/task-name`
+4. Tools query the index and return compact text with GitHub permalink URLs. All tools accept an `env` parameter to target a specific environment; default is development (first indexed)
 5. Renovate bumps the SHAs in `config.yaml` daily and auto-merges, so the MCP stays current without manual work
 
 ## Commands
@@ -87,11 +87,13 @@ tests/
 
 ## Test design
 
-Tests use a sample index built from YAML fixtures in `tests/fixtures/`. The fixtures contain a minimal task (`apply-mapping`) and pipeline (`rh-push-to-registry`) with realistic structure.
+Tests use two fixtures: `sample_index` (single catalog, no environments) and `multi_env_index` (development + production with different task sets). The fixtures contain a minimal task (`apply-mapping`) and pipeline (`rh-push-to-registry`). The multi-env fixture adds a dev-only task (`collect-signing-params`) to reproduce the real scenario where dev is ahead of prod.
 
 Tests verify:
 - **Indexer**: tasks and pipelines parsed correctly, params/steps/workspaces/results populated, schema loaded, empty dir handled
+- **Multi-env indexer**: environments don't overwrite each other, `find_task`/`find_pipeline` default to development, explicit env filters correctly, dev-only tasks not found in prod
 - **Tools**: search finds by name, grep returns URLs with line numbers, pipeline graph shows DAG, task explain shows steps, validation catches bad JSON and schema violations
+- **Multi-env tools**: default returns dev data, lists deduplicate across environments, env param filters correctly, `diff_envs` finds env-only items
 - **Docs**: doc search returns matches with context, list shows cached pages
 - **URLs**: permalink builder uses commit SHAs, falls back to HEAD
 
@@ -102,9 +104,11 @@ To add a test for a new tool: add it to `test_tools.py`, register it in `_build_
 1. Add the function inside the `register_*_tools(mcp, index)` function in the right file
 2. Decorate with `@mcp.tool()`
 3. Add a docstring with `Args:` section (MCP uses this for the tool description)
-4. Query `index.tasks`, `index.pipelines`, or `index.walk_files()` as needed
-5. Return a string. Use `index.url_for()` for GitHub links
-6. Add a test in `test_tools.py`
+4. Add `env: str = ""` parameter if the tool queries tasks or pipelines
+5. Filter by `env` when set, otherwise deduplicate across environments (use `_dedup()` or inline `seen` set)
+6. Query `index.tasks`, `index.pipelines`, or `index.walk_files()` as needed
+7. Return a string. Use `index.url_for()` for GitHub links
+8. Add a test in `test_tools.py`, including a multi-env test if applicable
 
 ## Adding a new repo or doc page
 

@@ -2,18 +2,22 @@
 
 
 def register_prompts(mcp):
-
     @mcp.prompt()
     def troubleshoot(pipeline_name: str = "", error_message: str = "", step_name: str = ""):
         """Troubleshoot a failed release pipeline run."""
         parts = [
             "A release pipeline has failed. Walk through the problem step by step.",
             "",
+            "First: ask which environment the failure is in (development, staging,",
+            "or production) and pass env= to all tool calls so you're looking at",
+            "the right version of each task and pipeline.",
+            "",
             "1. Run show_pipeline to see the full DAG and identify where the failure sits",
             "2. Run show_task on the failing task to see its steps, params, and script",
             "3. Run grep to search for the error message across all repos",
             "4. Run trace_pipeline to check if internal service calls are involved",
             "5. If the error mentions data keys, run schema to check the expected format",
+            "6. If the task exists in dev but not prod, check diff_envs for promotion status",
             "",
             "Focus on the root cause. Check if the issue is in the task script,",
             "a missing param, a wrong image version, or an internal service failure.",
@@ -26,7 +30,7 @@ def register_prompts(mcp):
         if error_message:
             parts.append(f"Error: {error_message}")
         if not any([pipeline_name, step_name, error_message]):
-            parts.append("Ask for: pipeline name, failing step, and error message.")
+            parts.append("Ask for: pipeline name, failing step, error message, and environment.")
         return "\n".join(parts)
 
     @mcp.prompt()
@@ -53,25 +57,26 @@ def register_prompts(mcp):
         return "\n".join(parts)
 
     @mcp.prompt()
-    def review_tests(task_name: str = "", category: str = "managed"):
+    def review_tests(task_name: str = "", category: str = "managed", env: str = "development"):
         """Review test coverage and find gaps for a task or the whole catalog."""
         if task_name:
             return "\n".join(
                 [
-                    f"Review test coverage for the {task_name} task.",
+                    f"Review test coverage for the {task_name} task in {env}.",
                     "",
-                    f"1. Run show_tests(name='{task_name}') to see existing tests",
-                    f"2. Run test_gaps(name='{task_name}') to find what's missing",
-                    f"3. Run show_task(name='{task_name}') to understand the task logic",
+                    f"1. Run show_tests(name='{task_name}', env='{env}') to see existing tests",
+                    f"2. Run test_gaps(name='{task_name}', env='{env}') to find what's missing",
+                    f"3. Run show_task(name='{task_name}', env='{env}') to understand"
+                    " the task logic",
                     "4. For each gap found, describe what the test should verify",
                     "   and what mock data it would need",
                 ]
             )
         return "\n".join(
             [
-                f"Review test coverage across {category} tasks.",
+                f"Review test coverage across {category} tasks in {env}.",
                 "",
-                f"1. Run test_coverage(category='{category}') for the overview",
+                f"1. Run test_coverage(category='{category}', env='{env}') for the overview",
                 "2. Start with tasks that have zero tests",
                 "3. Run test_gaps on each to understand what's missing",
                 "4. Run e2e_tests to check integration coverage",
@@ -87,23 +92,26 @@ def register_prompts(mcp):
                 f"Compare the {env_a} and {env_b} catalog environments.",
                 "",
                 f"1. Run diff_envs(env_a='{env_a}', env_b='{env_b}') to see the differences",
-                "2. For items only in one environment, run show_task or show_pipeline on them",
-                "3. For shared pipelines that might have changed, run diff_pipelines",
+                f"2. For items only in {env_a}, run show_task or show_pipeline with env='{env_a}'",
+                f"3. For shared pipelines, compare them with env='{env_a}' then env='{env_b}'",
+                "   to see if the task count or params differ between environments",
                 "4. Flag anything in development that looks ready for promotion",
             ]
         )
 
     @mcp.prompt()
-    def understand_pipeline(name: str = ""):
+    def understand_pipeline(name: str = "", env: str = "development"):
         """Understand how a release pipeline works end to end."""
         parts = [
-            "Walk through a release pipeline from start to finish.",
+            f"Walk through a release pipeline from start to finish (using {env} catalog).",
             "",
-            "1. Run show_pipeline to see the DAG, params, and workspaces",
-            "2. Run trace_pipeline to see each task, its steps, and internal calls",
+            f"1. Run show_pipeline with env='{env}' to see the DAG, params, and workspaces",
+            f"2. Run trace_pipeline with env='{env}' to see each task, its steps,"
+            " and internal calls",
             "3. For key tasks, run show_task for the full script and helpers used",
             "4. Run schema to check what data keys the pipeline expects",
-            "5. Summarize: what this pipeline does, what it signs, where it pushes,",
+            "5. Run diff_envs to check if this pipeline differs across environments",
+            "6. Summarize: what this pipeline does, what it signs, where it pushes,",
             "   and what internal services it calls",
             "",
         ]
@@ -114,11 +122,13 @@ def register_prompts(mcp):
         return "\n".join(parts)
 
     @mcp.prompt()
-    def audit(category: str = "managed"):
+    def audit(category: str = "managed", env: str = "development"):
         """Audit tasks for resource limits, secrets, and test coverage."""
         return "\n".join(
             [
-                f"Audit {category} tasks for operational readiness.",
+                f"Audit {category} tasks in {env} for operational readiness.",
+                "",
+                f"Pass env='{env}' to all tool calls below.",
                 "",
                 "1. Run resources(mode='missing') to find steps without CPU/memory limits",
                 "2. Run secrets to find tasks referencing Kubernetes secrets",
@@ -131,17 +141,18 @@ def register_prompts(mcp):
         )
 
     @mcp.prompt()
-    def image_update(image: str = "release-service-utils"):
+    def image_update(image: str = "release-service-utils", env: str = "development"):
         """Assess the impact of updating a container image."""
         return "\n".join(
             [
-                f"Assess the impact of updating the {image} image.",
+                f"Assess the impact of updating the {image} image in {env}.",
                 "",
-                f"1. Run search_by_image(image='{image}') to find all affected tasks",
+                f"1. Run search_by_image(image='{image}', env='{env}') to find all affected tasks",
                 "2. For each affected task, run show_task to check what it does",
                 "3. Run show_tests on affected tasks to check test coverage",
                 "4. Check if different tasks pin different image versions",
                 "5. List which pipelines would be affected via those tasks",
+                "6. Run diff_envs to check if the image change has been promoted",
                 "",
                 "Flag any tasks that use an old digest vs the majority.",
             ]
