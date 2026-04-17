@@ -8,18 +8,20 @@ MCP server for Release Service
 
 ### Claude Code
 
-Add to `~/.claude/settings.json`:
+Add to `~/.claude.json`:
 
 ```json
 {
   "mcpServers": {
     "release": {
       "command": "podman",
-      "args": ["run", "--rm", "-i", "quay.io/rh-ee-sconroy/release-assistant-mcp:latest"]
+      "args": ["run", "--rm", "-i", "--pull=always", "quay.io/rh-ee-sconroy/release-assistant-mcp:latest"]
     }
   }
 }
 ```
+
+`--pull=always` is optional but recommended. It ensures you always get the latest catalog data instead of a stale cached image.
 
 ### Cursor
 
@@ -30,11 +32,12 @@ Add to `~/.cursor/mcp.json`:
   "mcpServers": {
     "release": {
       "command": "podman",
-      "args": ["run", "--rm", "-i", "quay.io/rh-ee-sconroy/release-assistant-mcp:latest"]
+      "args": ["run", "--rm", "-i", "--pull=always", "quay.io/rh-ee-sconroy/release-assistant-mcp:latest"]
     }
   }
 }
 ```
+`--pull=always` is optional but recommended. It ensures you always get the latest catalog data instead of a stale cached image.
 
 ## Tools
 
