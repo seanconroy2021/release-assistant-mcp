@@ -27,13 +27,13 @@ catalog:
   environments:
     development:
       branch: development
-      ref: 87e4b26823690e597767317e9b585d7009af6fc6  # development
+      ref: 3173224fd75c5244d16b33e50a2e07ace2c9e2ba  # development
     staging:
       branch: staging
-      ref: dea918730e6726ad2f93fec8643e0b971958dba3  # staging
+      ref: 87e4b26823690e597767317e9b585d7009af6fc6  # staging
     production:
       branch: production
-      ref: 48e91e5e0b051bf5ce78a523454e7f0cdafce4b8  # production
+      ref: dea918730e6726ad2f93fec8643e0b971958dba3  # production
 
 docs:
   - name: releasing
