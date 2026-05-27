@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779803286 AS builder
+FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779887169 AS builder
 
 USER 0
 
@@ -15,7 +15,7 @@ COPY pyproject.toml .
 COPY src/ src/
 RUN pip install --no-cache-dir --no-compile . && rm -rf /tmp/*
 
-FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779803286
+FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779887169
 
 ARG BUILD_DATE=""
 
