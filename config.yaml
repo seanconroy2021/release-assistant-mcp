@@ -27,7 +27,7 @@ catalog:
   environments:
     development:
       branch: development
-      ref: ebb5317989e4222d7e73c9fc2127adc3f0ec0e71  # development
+      ref: b37875a51676ce1b5b620ec4207c655e56eb5df5  # development
     staging:
       branch: staging
       ref: 87e4b26823690e597767317e9b585d7009af6fc6  # staging
