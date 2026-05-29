@@ -22,7 +22,8 @@
       ],
       "datasourceTemplate": "git-refs",
       "depNameTemplate": "{{{packageName}}}",
-      "depTypeTemplate": "git-sha"
+      "depTypeTemplate": "git-sha",
+      "packageNameTemplate": "https://github.com/{{{packageName}}}"
     },
     {
       "customType": "regex",
@@ -82,5 +83,6 @@
       ],
       "groupName": "config-repo-shas"
     }
-  ]
+  ],
+  "platformAutomerge": false
 }
