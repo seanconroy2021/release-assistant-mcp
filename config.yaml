@@ -12,7 +12,7 @@ repos:
 
   - name: release-service-utils
     url: https://github.com/konflux-ci/release-service-utils
-    ref: c2c67c1731e0c5233f7422ce6b08f6f82c35aa5d  # main
+    ref: b372d559e6aed3f74f0cfa6e948629f4d332e775  # main
     description: Base image with helper functions
 
   - name: release-service-collectors
@@ -27,13 +27,13 @@ catalog:
   environments:
     development:
       branch: development
-      ref: bf86f40dcc69fe741fe23a37abec27d208c934b4  # development
+      ref: fcdbbc424c552dce1f556207ea8df770eabe200e  # development
     staging:
       branch: staging
-      ref: 2168b83680dbccf14fcf193d26f53676bfbddff2  # staging
+      ref: 26ed82581f7e5e5e819f261f07c8d0ed184c9f19  # staging
     production:
       branch: production
-      ref: 38dd9aab24c3c024b4e582d45508fef60fc221dd  # production
+      ref: 2168b83680dbccf14fcf193d26f53676bfbddff2  # production
 
 docs:
   - name: releasing
