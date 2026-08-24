@@ -7,7 +7,7 @@ repos:
 
   - name: internal-services
     url: https://github.com/konflux-ci/internal-services
-    ref: 3d99c3630a5f4b17a0cd3c6874107c1cb4069744  # main
+    ref: ac3f07f74fd0a4f63ffa356b1d6424e40c87546c  # main
     description: Internal cluster controller
 
   - name: release-service-utils
