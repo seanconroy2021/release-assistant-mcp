@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779887169 AS builder
+FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1788165617 AS builder
 
 USER 0
 
@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir --no-compile . && rm -rf /tmp/*
 # pip is not needed at runtime so drop it from the app-root
 RUN pip uninstall -y pip
 
-FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1779887169
+FROM registry.redhat.io/ubi10/python-312-minimal:10.2-1788165617
 
 USER 0
 
