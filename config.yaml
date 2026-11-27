@@ -2,17 +2,17 @@
 repos:
   - name: release-service
     url: https://github.com/konflux-ci/release-service
-    ref: eaf84ab19d5774c06f72cc455f1e151c6ee3d620  # main
+    ref: 8e64d8b9300c0d0d776be0b6878d2a6881804ef2  # main
     description: Operator
 
   - name: internal-services
     url: https://github.com/konflux-ci/internal-services
-    ref: 12642d837f56e24467b75443037d1637c5df9cdf  # main
+    ref: 8433aa980b755fec063dded9754aaa17304a1407  # main
     description: Internal cluster controller
 
   - name: release-service-utils
     url: https://github.com/konflux-ci/release-service-utils
-    ref: 1adad578cc6de4fb87cf74229c042eed9051ff33  # main
+    ref: 7a88c7253089fdce96eb669803877effd1d3e4b7  # main
     description: Base image with helper functions
 
   - name: release-service-collectors
@@ -27,10 +27,10 @@ catalog:
   environments:
     development:
       branch: development
-      ref: 785d4c2d980bbab4e8489d9d1205e23bf4f35356  # development
+      ref: ea3364afb4b5b96e0ff7fd39ccb6ca9cb5b6dc70  # development
     staging:
       branch: staging
-      ref: cb543065219c395786842ee196f70e575cf20ddc  # staging
+      ref: 56e0f913a113c58302fbdc8cd71e15b6380969ce  # staging
     production:
       branch: production
       ref: 40e42db62d73e913de2f6bfbda22d7f8e113223a  # production
